@@ -42,4 +42,5 @@ CSV Data
 2024-06-28T14:05:04Z,2024-06-28T14:06:25Z,ipsum,qui ratione voluptatem sequi nesciunt
 ```
 
-Generates [this report](https://tightloop.io/resurrection/assets/report.html).
+Generates [this report](https://tightloop.io/resurrection/assets/report.html). Screenshot:
+![report](https://github.com/gulrotkake/tag-report/assets/539077/4791fa9b-1e55-41aa-9754-e35d27f28b17)
