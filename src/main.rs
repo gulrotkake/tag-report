@@ -165,8 +165,8 @@ fn main() {
             start: &args.start.with_timezone(&args.timezone).date_naive(),
             end: &args.end.with_timezone(&args.timezone).date_naive(),
             duration: &fmt_duration(entries.iter().map(|entry| entry.1 - entry.0).sum::<i64>()),
-            pie: &pie,
-            bar: &bar,
+            pie: &pie.replace(r#"<svg width="1000" height="800""#, "<svg"),
+            bar: &bar.replace(r#"<svg width="1000" height="800""#, "<svg"),
             entries: &entries
                 .iter()
                 .map(|entry| (&entry.3, fmt_duration(entry.1 - entry.0)))
