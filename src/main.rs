@@ -71,7 +71,7 @@ fn split_interval(
             let tomorrow = current
                 .checked_add_days(Days::new(1))
                 .unwrap()
-                .with_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
+                .with_time(NaiveTime::MIN)
                 .unwrap();
             durations.push((current, tomorrow));
             current = tomorrow;
@@ -227,5 +227,69 @@ mod tests {
             .with_timezone(&tz);
 
         assert_eq!(d2.date_naive().day(), 3);
+    }
+
+    #[test]
+    fn split_multiple_days() {
+        let tz: Tz = "UTC".parse().unwrap();
+        let start = DateTime::parse_from_rfc3339("2024-07-03T17:05:30Z")
+            .unwrap()
+            .with_timezone(&tz);
+        let end = DateTime::parse_from_rfc3339("2024-07-05T16:32:00Z")
+            .unwrap()
+            .with_timezone(&tz);
+        let parts = split_interval(&start, &end);
+        assert_eq!(parts.len(), 3);
+        assert_eq!(parts[0].0, start);
+        assert_eq!(
+            parts[0].1,
+            start
+                .checked_add_days(Days::new(1))
+                .and_then(|dt| dt.with_time(NaiveTime::MIN).single())
+                .unwrap()
+        );
+
+        assert_eq!(
+            parts[1].0,
+            start
+                .checked_add_days(Days::new(1))
+                .and_then(|dt| dt.with_time(NaiveTime::MIN).single())
+                .unwrap()
+        );
+
+        assert_eq!(
+            parts[1].1,
+            start
+                .checked_add_days(Days::new(2))
+                .and_then(|dt| dt.with_time(NaiveTime::MIN).single())
+                .unwrap()
+        );
+
+        assert_eq!(
+            parts[2].0,
+            start
+                .checked_add_days(Days::new(2))
+                .and_then(|dt| dt.with_time(NaiveTime::MIN).single())
+                .unwrap()
+        );
+
+        assert_eq!(parts[2].1, end);
+    }
+
+    #[test]
+    fn interval_sum_matches() {
+        let tz: Tz = "UTC".parse().unwrap();
+        let start = DateTime::parse_from_rfc3339("2024-07-03T17:05:30Z")
+            .unwrap()
+            .with_timezone(&tz);
+        let end = DateTime::parse_from_rfc3339("2024-07-05T16:32:00Z")
+            .unwrap()
+            .with_timezone(&tz);
+        let parts = split_interval(&start, &end);
+        let sum: i64 = parts
+            .iter()
+            .map(|(start, end)| end.timestamp_millis() - start.timestamp_millis())
+            .sum();
+        assert_eq!(sum, end.timestamp_millis() - start.timestamp_millis());
     }
 }
