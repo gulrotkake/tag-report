@@ -62,16 +62,15 @@ fn split_interval(
             durations.push((
                 current,
                 end.with_time(NaiveTime::MIN)
-                    .unwrap()
-                    .checked_add_signed(*end - current)
+                    .single()
+                    .and_then(|dt| dt.checked_add_signed(*end - current))
                     .unwrap(),
             ));
             break;
         } else {
             let tomorrow = current
                 .checked_add_days(Days::new(1))
-                .unwrap()
-                .with_time(NaiveTime::MIN)
+                .and_then(|dt| dt.with_time(NaiveTime::MIN).single())
                 .unwrap();
             durations.push((current, tomorrow));
             current = tomorrow;
@@ -156,10 +155,9 @@ fn get_end_of_month(tz: &Tz) -> DateTime<FixedOffset> {
     let now = Utc::now().with_timezone(tz);
     return tz
         .with_ymd_and_hms(now.year(), now.month(), 1, 0, 0, 0)
-        .unwrap()
-        .checked_add_months(Months::new(1))
-        .unwrap()
-        .checked_sub_signed(TimeDelta::nanoseconds(1))
+        .single()
+        .and_then(|dt| dt.checked_add_months(Months::new(1)))
+        .and_then(|dt| dt.checked_sub_signed(TimeDelta::nanoseconds(1)))
         .unwrap()
         .fixed_offset();
 }
