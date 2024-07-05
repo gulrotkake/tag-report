@@ -1,6 +1,9 @@
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
-use chrono::{DateTime, Days, Duration, FixedOffset, NaiveDate, NaiveTime};
+use chrono::{
+    DateTime, Datelike, Days, Duration, FixedOffset, Months, NaiveDate, NaiveTime, TimeDelta,
+    TimeZone, Utc,
+};
 use chrono_tz::Tz;
 use clap::Parser;
 use clap_stdin::FileOrStdin;
@@ -15,10 +18,10 @@ mod visualizations;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(default_value = "2024-06-01T00:00:00+02:00", short, long)]
-    start: DateTime<FixedOffset>,
-    #[arg(default_value = "2024-07-01T00:00:00+02:00", short, long)]
-    end: DateTime<FixedOffset>,
+    #[arg(short, long)]
+    start: Option<DateTime<FixedOffset>>,
+    #[arg(short, long)]
+    end: Option<DateTime<FixedOffset>>,
     #[arg(default_value = "Europe/Oslo", short, long)]
     timezone: Tz,
 
@@ -142,12 +145,34 @@ fn fmt_duration(seconds: i64) -> String {
     )
 }
 
+fn get_start_of_month(tz: &Tz) -> DateTime<FixedOffset> {
+    let now = Utc::now().with_timezone(tz);
+    tz.with_ymd_and_hms(now.year(), now.month(), 1, 0, 0, 0)
+        .unwrap()
+        .fixed_offset()
+}
+
+fn get_end_of_month(tz: &Tz) -> DateTime<FixedOffset> {
+    let now = Utc::now().with_timezone(tz);
+    return tz
+        .with_ymd_and_hms(now.year(), now.month(), 1, 0, 0, 0)
+        .unwrap()
+        .checked_add_months(Months::new(1))
+        .unwrap()
+        .checked_sub_signed(TimeDelta::nanoseconds(1))
+        .unwrap()
+        .fixed_offset();
+}
+
 fn main() {
     let args = Args::parse();
+    let start = args.start.unwrap_or(get_start_of_month(&args.timezone));
+    let end = args.end.unwrap_or(get_end_of_month(&args.timezone));
+
     let entries = group_by_day(
         &args.csv.contents().unwrap(),
-        args.start.with_timezone(&args.timezone).timestamp(),
-        args.end.with_timezone(&args.timezone).timestamp(),
+        start.timestamp(),
+        end.timestamp(),
         &args.timezone,
     )
     .unwrap();
@@ -155,15 +180,15 @@ fn main() {
 
     let bar = visualizations::bar(
         entries.iter().map(|entry| (entry.0, entry.1)).collect(),
-        args.start.with_timezone(&args.timezone),
-        args.end.with_timezone(&args.timezone),
+        start.with_timezone(&args.timezone),
+        end.with_timezone(&args.timezone),
     );
 
     println!(
         "{}",
         &Report {
-            start: &args.start.with_timezone(&args.timezone).date_naive(),
-            end: &args.end.with_timezone(&args.timezone).date_naive(),
+            start: &start.with_timezone(&args.timezone).date_naive(),
+            end: &end.with_timezone(&args.timezone).date_naive(),
             duration: &fmt_duration(entries.iter().map(|entry| entry.1 - entry.0).sum::<i64>()),
             pie: &pie.replace(r#"<svg width="1000" height="800""#, "<svg"),
             bar: &bar.replace(r#"<svg width="1000" height="800""#, "<svg"),
