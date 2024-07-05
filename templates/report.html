@@ -2919,13 +2919,13 @@
 <body>
     <main class="container">
         <header>
-            <h1>Summary Report{{{logo}}}</h1>
+            <h1>Summary Report{{logo}}</h1>
         </header>
-        <h5>{{start}} - {{end}}</h5>
+        <h5>{{start|e}} - {{end|e}}</h5>
         <h6>Hours worked: {{duration}}</h6>
         <section style='display: flex; flex-direction: row;'>
-            {{{pie}}}
-            {{{bar}}}
+            {{pie}}
+            {{bar}}
         </section>
         <table>
             <thead>
@@ -2935,12 +2935,12 @@
                 </tr>
             </thead>
             <tbody>
-                {{#entries}}
+                {% for entry in entries %}
                 <tr>
-                    <td>{{.0}}</td>
-                    <td>{{.1}}</td>
+                    <td>{{entry.0|e}}</td>
+                    <td>{{entry.1|e}}</td>
                 </tr>
-                {{/entries}}
+                {% endfor %}
             </tbody>
         </table>
     </main>

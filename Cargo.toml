@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bart = "0.1.6"
-bart_derive = "0.1.6"
+askama = "0.12.1"
 base64 = "0.22.1"
 charming = {version = "0.3.1", features = ["ssr"]}
 chrono = {version = "0.4.38"}

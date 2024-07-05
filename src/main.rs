@@ -39,8 +39,8 @@ struct Record {
     description: String,
 }
 
-#[derive(bart_derive::BartDisplay)]
-#[template = "src/report.template"]
+#[derive(askama::Template)]
+#[template(path = "report.html", escape = "none")]
 struct Report<'a> {
     start: &'a NaiveDate,
     end: &'a NaiveDate,
