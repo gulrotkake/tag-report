@@ -180,7 +180,7 @@ fn to_pdf(report: &Report<'_>, filename: &String) {
 
     let path: &std::path::Path = tempfile.path();
     let target = std::path::PathBuf::from(filename);
-    let options: &html2pdf::Options = &html2pdf::Options {
+    let options = &html2pdf::Options {
         input: path.to_path_buf(),
         output: Some(target),
         landscape: false,
