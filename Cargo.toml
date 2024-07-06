@@ -14,4 +14,8 @@ clap-stdin = "0.4.0"
 csv = "1.3.0"
 itertools = "0.13.0"
 serde = "1.0.203"
+tempfile = { version = "3.10.1", optional = true }
+html2pdf = { version = "0.7.1", optional = true }
 
+[features]
+pdf = ["dep:html2pdf", "dep:tempfile"]

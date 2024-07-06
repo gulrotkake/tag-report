@@ -28,6 +28,10 @@ struct Args {
     #[arg(short, long)]
     logo: Option<String>,
 
+    #[cfg(feature = "pdf")]
+    #[arg(short, long)]
+    pdf: Option<String>,
+
     csv: FileOrStdin,
 }
 
@@ -162,6 +166,37 @@ fn get_end_of_month(tz: &Tz) -> DateTime<FixedOffset> {
         .fixed_offset();
 }
 
+#[cfg(feature = "pdf")]
+fn to_pdf(report: &Report<'_>, filename: &String) {
+    use std::io::Write;
+
+    let mut tempfile = tempfile::Builder::new()
+        .suffix(".html")
+        .rand_bytes(8)
+        .tempfile()
+        .unwrap();
+
+    writeln!(tempfile, "{}", report).unwrap();
+
+    let path: &std::path::Path = tempfile.path();
+    let target = std::path::PathBuf::from(filename);
+    let options: &html2pdf::Options = &html2pdf::Options {
+        input: path.to_path_buf(),
+        output: Some(target),
+        landscape: false,
+        background: false,
+        disable_sandbox: false,
+        paper: Some(html2pdf::PaperSize::A4),
+        wait: None,
+        header: None,
+        footer: None,
+        scale: None,
+        range: None,
+        margin: None,
+    };
+    html2pdf::run(&options).unwrap();
+}
+
 fn main() {
     let args = Args::parse();
     let start = args.start.unwrap_or(get_start_of_month(&args.timezone));
@@ -182,29 +217,35 @@ fn main() {
         end.with_timezone(&args.timezone),
     );
 
-    println!(
-        "{}",
-        &Report {
-            start: &start.with_timezone(&args.timezone).date_naive(),
-            end: &end.with_timezone(&args.timezone).date_naive(),
-            duration: &fmt_duration(entries.iter().map(|entry| entry.1 - entry.0).sum::<i64>()),
-            pie: &pie.replace(r#"<svg width="1000" height="800""#, "<svg"),
-            bar: &bar.replace(r#"<svg width="1000" height="800""#, "<svg"),
-            entries: &entries
-                .iter()
-                .map(|entry| (&entry.3, fmt_duration(entry.1 - entry.0)))
-                .collect(),
-            logo: match args.logo {
-                Some(filename) => {
-                    format!(
-                        "<img src='data:image/svg+xml;base64,{}'>",
-                        BASE64_STANDARD.encode(fs::read_to_string(filename).unwrap())
-                    )
-                }
-                None => "".to_owned(),
+    let render = &Report {
+        start: &start.with_timezone(&args.timezone).date_naive(),
+        end: &end.with_timezone(&args.timezone).date_naive(),
+        duration: &fmt_duration(entries.iter().map(|entry| entry.1 - entry.0).sum::<i64>()),
+        pie: &pie.replace(r#"<svg width="1000" height="800""#, "<svg"),
+        bar: &bar.replace(r#"<svg width="1000" height="800""#, "<svg"),
+        entries: &entries
+            .iter()
+            .map(|entry| (&entry.3, fmt_duration(entry.1 - entry.0)))
+            .collect(),
+        logo: match args.logo {
+            Some(filename) => {
+                format!(
+                    "<img src='data:image/svg+xml;base64,{}'>",
+                    BASE64_STANDARD.encode(fs::read_to_string(filename).unwrap())
+                )
             }
-        }
-    );
+            None => "".to_owned(),
+        },
+    };
+
+    #[cfg(feature = "pdf")]
+    match args.pdf {
+        Some(filename) => to_pdf(render, &filename),
+        None => println!("{}", render),
+    }
+
+    #[cfg(not(feature = "pdf"))]
+    println!("{}", render);
 }
 
 #[cfg(test)]
